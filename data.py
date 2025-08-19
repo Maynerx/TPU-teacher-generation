@@ -89,9 +89,7 @@ def pack_for_distill(examples, tokenizer, pad_id, bos_id, eos_id, sentinel_start
         "student_decoder_input_ids": student_dec_in,
         "student_labels": student_labels,
         "teacher_input_ids": teacher_in,
-        "teacher_attention_mask": teacher_mask,
-        "ne": ne_list,
-        "nd": nd_list,
+        "teacher_attention_mask": teacher_mask
     }
 
 
