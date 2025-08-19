@@ -86,8 +86,7 @@ def pack_for_distill(examples, tokenizer, pad_id, bos_id, eos_id, sentinel_start
         teacher_in.append(t_in)
         teacher_mask.append(t_mask)
 
-    logger.info(f"s_enc: {len(s_enc)}, s_dec_in: {len(s_dec_in)}, "
-                f"s_labels: {len(s_labels)}, t_in: {len(t_in)}, t_mask: {len(t_mask)}")
+    print(len(student_enc), len(student_dec_in), len(student_labels), len(teacher_in), len(teacher_mask))
 
     return {
         "student_encoder_input_ids": student_enc,
@@ -118,6 +117,11 @@ def load_data(path, tokenizer, seq_len=512, ne=8, nd=8, ratio=0.1):
     num_new = tokenizer.add_special_tokens({"additional_special_tokens": special_tokens})
 
     sentinel_start = tokenizer.convert_tokens_to_ids("<extra_id_0>")
+
+    sample = train_dataset[0]
+    pack_for_distill(sample, tokenizer, pad, bos, eos, sentinel_start, seq_len, ne, nd)
+    quit()
+    
     
     train_dataset = train_dataset.map(
         lambda x: pack_for_distill(x, tokenizer, pad, bos, eos, sentinel_start, seq_len, ne, nd),
