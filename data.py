@@ -62,7 +62,7 @@ def pack_for_distill(examples, tokenizer, pad_id, bos_id, eos_id, sentinel_start
     chunks = [all_ids[i:i+seq_len] for i in range(0, len(all_ids), seq_len) if len(all_ids[i:i+seq_len]) > 0]
 
     student_enc, student_dec_in, student_labels = [], [], []
-    teacher_in, teacher_mask, ne_list, nd_list = [], [], [], []
+    teacher_in, teacher_mask = [], []
 
     for chunk in chunks:
         enc_ids, dec_ids = span_corrupt(chunk, bos=bos_id, eos=eos_id, pad=pad_id, sentinel_start=sentinel_start)
@@ -81,8 +81,6 @@ def pack_for_distill(examples, tokenizer, pad_id, bos_id, eos_id, sentinel_start
         student_labels.append(s_labels)
         teacher_in.append(t_in)
         teacher_mask.append(t_mask)
-        ne_list.append(ne)
-        nd_list.append(nd)
 
     return {
         "student_encoder_input_ids": student_enc,
