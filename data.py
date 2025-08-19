@@ -3,6 +3,10 @@ from torch import ne
 from torch.utils.data import DataLoader
 from datasets import load_dataset, Features, Sequence, Value, Dataset
 
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 FEATURES = Features({
     "encoder_inputs": Sequence(Value("int32")),  # [L]
     "decoder_inputs": Sequence(Value("int32")),  # [L]
@@ -82,7 +86,8 @@ def pack_for_distill(examples, tokenizer, pad_id, bos_id, eos_id, sentinel_start
         teacher_in.append(t_in)
         teacher_mask.append(t_mask)
 
-    print(len(teacher_mask), len(teacher_in), len(student_dec_in))
+    logger.info(f"s_enc: {len(s_enc)}, s_dec_in: {len(s_dec_in)}, "
+                f"s_labels: {len(s_labels)}, t_in: {len(t_in)}, t_mask: {len(t_mask)}")
 
     return {
         "student_encoder_input_ids": student_enc,
