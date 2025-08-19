@@ -56,9 +56,11 @@ if __name__ == "__main__":
     parser.add_argument("--use-fork", type=bool, default=False, help="Use fork start method for multiprocessing")
     args = parser.parse_args()
 
-    empty_load(args.model_name)
+    
 
     config = load_config(args.config)
+
+    empty_load(config.model_name)
 
     tokenizer = config.tokenizer
 
