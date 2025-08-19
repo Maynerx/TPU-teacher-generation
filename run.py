@@ -38,14 +38,13 @@ def empty_load(model_name):
 def load_config(config_path):
     with open(config_path, 'r') as f:
         config_data = json.load(f)
+    os.environ['HF_TOKEN'] = config_data['api_key']
     return Config(
         model_name=config_data['model_name'],
         seq_len=config_data['seq_len'],
         batch_size=config_data['batch_size'],
         top_k=config_data['top_k'],
         temperature=config_data['temperature'],
-        training_dataset=config_data['training_dataset'],
-        validation_dataset=config_data['validation_dataset'],
         num_workers=config_data['num_workers']
     )
 
