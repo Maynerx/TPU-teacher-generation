@@ -82,6 +82,8 @@ def pack_for_distill(examples, tokenizer, pad_id, bos_id, eos_id, sentinel_start
         teacher_in.append(t_in)
         teacher_mask.append(t_mask)
 
+    print(len(teacher_mask), len(teacher_in), len(student_dec_in))
+
     return {
         "student_encoder_input_ids": student_enc,
         "student_decoder_input_ids": student_dec_in,
