@@ -19,6 +19,7 @@ def run_process(rank, config):
     
         for batch in data_loader:
             input_ids_t = batch["teacher_input_ids"].to(device)           # (B, 2L)
+            input_ids_t = input_ids_t.long() 
             attn_mask_t = batch["teacher_attention_mask"].to(device)
             with torch.no_grad():
                 logits = model(input_ids=input_ids_t, attention_mask=attn_mask_t).logits        # (B, L, V)
