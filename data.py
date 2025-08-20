@@ -60,10 +60,14 @@ def span_corrupt(ids, noise_density=0.15, mean_span_length=3,
     return encoder, decoder
 
 def pack_for_distill(examples, tokenizer, pad_id, bos_id, eos_id, sentinel_start, seq_len=None, ne=8, nd=8):
-    all_ids = tokenizer(examples["text"], add_special_tokens=False)["input_ids"]
+    all_ids = sum(
+        tokenizer(examples["text"], add_special_tokens=False)["input_ids"], []
+    )
 
-    # break into fixed-length chunks
-    chunks = [all_ids[i:i+seq_len] for i in range(0, len(all_ids), seq_len) if len(all_ids[i:i+seq_len]) > 0]
+    chunks = [
+        all_ids[i : i + seq_len + 1]
+        for i in range(0, len(all_ids) - seq_len, seq_len)
+    ]
 
     student_enc, student_dec_in, student_labels = [], [], []
     teacher_in, teacher_mask = [], []
@@ -86,15 +90,12 @@ def pack_for_distill(examples, tokenizer, pad_id, bos_id, eos_id, sentinel_start
         teacher_in.append(t_in)
         teacher_mask.append(t_mask)
 
-    print(len(student_enc), len(student_dec_in), len(student_labels), len(teacher_in), len(teacher_mask))
-    print(chunks)
-
     return {
-        "student_encoder_input_ids": [student_enc],  # wrap once here
-        "student_decoder_input_ids": [student_dec_in],
-        "student_labels": [student_labels],
-        "teacher_input_ids": [teacher_in],
-        "teacher_attention_mask": [teacher_mask],
+        "student_encoder_input_ids": student_enc,
+        "student_decoder_input_ids": student_dec_in,
+        "student_labels": student_labels,
+        "teacher_input_ids": teacher_in,
+        "teacher_attention_mask": teacher_mask,
     }
 
 
