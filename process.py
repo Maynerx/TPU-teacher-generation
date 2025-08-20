@@ -14,7 +14,7 @@ from time import sleep
 def run_process(rank, config):
     def inference_loop(model, data_loader, device, rank, verbose=False, top_k=50, temp=2.0, train=True):
         model.eval()
-        data_loader = tqdm.tqdm(data_loader, disable=not verbose)
+        data_loader = tqdm.tqdm(data_loader) if rank == 0 else data_loader
         writer = None
     
         for batch in data_loader:
