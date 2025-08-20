@@ -86,7 +86,7 @@ def run_process(rank, config):
         local_files_only=True
     ).half().to(device)
 
-    model.resize_token_embeddings(len(config.tokenizer))
+    model.resize_token_embeddings(len(config.tokenizer), mean_resizing=False)
 
     model.eval()
     xm.rendezvous("model_loaded")
