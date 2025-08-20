@@ -82,13 +82,13 @@ def run_process(rank, config):
     model = AutoModelForCausalLM.from_pretrained(
         config.model_name,
         torch_dtype=torch.bfloat16,
-        low_cpu_mem_usage=False,
+        low_cpu_mem_usage=True,
         local_files_only=True
-    ).half().to(device)
+    ).half().cpu()
 
     model.resize_token_embeddings(len(config.tokenizer), mean_resizing=False)
 
-    model.eval()
+    model.to(device).eval()
     xm.rendezvous("model_loaded")
     sleep(rank * 1.5)
     if rank == 0:
