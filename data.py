@@ -59,11 +59,15 @@ def span_corrupt(ids, noise_density=0.15, mean_span_length=3,
     decoder.append(eos)
     return encoder, decoder
 
-def pack_for_distill(examples, tokenizer, pad_id, bos_id, eos_id, sentinel_start, seq_len=None, ne=8, nd=8):
+def pack_for_distill(
+    examples, tokenizer, pad_id, bos_id, eos_id,
+    sentinel_start, seq_len=None, ne=8, nd=8
+):
     all_ids = sum(
         tokenizer(examples["text"], add_special_tokens=False)["input_ids"], []
     )
 
+    # make fixed-size chunks
     chunks = [
         all_ids[i : i + seq_len + 1]
         for i in range(0, len(all_ids) - seq_len, seq_len)
@@ -73,16 +77,29 @@ def pack_for_distill(examples, tokenizer, pad_id, bos_id, eos_id, sentinel_start
     teacher_in, teacher_mask = [], []
 
     for chunk in chunks:
-        enc_ids, dec_ids = span_corrupt(chunk, bos=bos_id, eos=eos_id, pad=pad_id, sentinel_start=sentinel_start)
+        enc_ids, dec_ids = span_corrupt(
+            chunk, bos=bos_id, eos=eos_id,
+            pad=pad_id, sentinel_start=sentinel_start
+        )
 
-        # student
-        s_enc = enc_ids + [pad_id] * ne
-        s_dec_in = dec_ids[:-1] + [pad_id] * nd
-        s_labels = dec_ids[1:] + [pad_id] * nd
+        # 🔹 fixed-size encoder (pad up to seq_len+ne)
+        s_enc = (enc_ids + [pad_id] * (seq_len + ne - len(enc_ids)))[:seq_len+ne]
 
-        # teacher
+        # 🔹 fixed-size decoder inputs & labels
+        s_dec_in = (dec_ids[:-1] + [pad_id] * (seq_len + nd - len(dec_ids[:-1])))[:seq_len+nd]
+        s_labels = (dec_ids[1:] + [pad_id] * (seq_len + nd - len(dec_ids[1:])))[:seq_len+nd]
+
+        # set loss ignore index for PAD tokens
+        s_labels = [tok if tok != pad_id else -100 for tok in s_labels]
+
+        # 🔹 teacher still gets attention mask
         t_in = [pad_id] * ne + enc_ids + dec_ids[1:] + [pad_id] * nd
-        t_mask = [0] * ne + [1] * (len(t_in) - ne - nd) + [0] * nd
+        t_in = (t_in + [pad_id] * (2*seq_len + ne + nd - len(t_in)))[:2*seq_len+ne+nd]
+        t_mask = [0] * len(t_in)
+        # mark everything that is not pad
+        for j, tok in enumerate(t_in):
+            if tok != pad_id:
+                t_mask[j] = 1
 
         student_enc.append(s_enc)
         student_dec_in.append(s_dec_in)
