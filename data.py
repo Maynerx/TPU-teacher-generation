@@ -90,11 +90,11 @@ def pack_for_distill(examples, tokenizer, pad_id, bos_id, eos_id, sentinel_start
     print(chunks)
 
     return {
-        "student_encoder_input_ids": student_enc,
-        "student_decoder_input_ids": student_dec_in,
-        "student_labels": student_labels,
-        "teacher_input_ids": teacher_in,
-        "teacher_attention_mask": teacher_mask
+        "student_encoder_input_ids": [student_enc],  # wrap once here
+        "student_decoder_input_ids": [student_dec_in],
+        "student_labels": [student_labels],
+        "teacher_input_ids": [teacher_in],
+        "teacher_attention_mask": [teacher_mask],
     }
 
 
@@ -119,9 +119,6 @@ def load_data(path, tokenizer, seq_len=512, ne=8, nd=8, ratio=0.1):
 
     sentinel_start = tokenizer.convert_tokens_to_ids("<extra_id_0>")
 
-    sample = train_dataset[0]
-    pack_for_distill(sample, tokenizer, pad, bos, eos, sentinel_start, seq_len, ne, nd)
-    quit()
     
     
     train_dataset = train_dataset.map(
