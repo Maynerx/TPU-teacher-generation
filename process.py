@@ -84,7 +84,7 @@ def run_process(rank, config):
         torch_dtype=torch.bfloat16,
         low_cpu_mem_usage=False,
         local_files_only=True
-    ).to(device)
+    ).half().to(device)
 
     model.resize_token_embeddings(len(config.tokenizer))
 
