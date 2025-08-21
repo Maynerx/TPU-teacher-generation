@@ -23,27 +23,31 @@ def run_process(rank, config):
             attn_mask_t = batch["teacher_attention_mask"].to(device)
             with torch.no_grad():
                 logits = model(input_ids=input_ids_t, attention_mask=attn_mask_t).logits        # (B, L, V)
+                topk_vals, topk_idx = torch.topk(logits, top_k, dim=-1)
+                topk_probs = F.softmax(topk_vals / temp, dim=-1)
             xm.mark_step()  # compile & run this sub-graph
-    
-            topk_vals, topk_idx = torch.topk(logits, top_k, dim=-1)
-            topk_probs = F.softmax(topk_vals / temp, dim=-1)
     
             topk_vals = topk_vals.cpu()
             topk_idx  = topk_idx.cpu()
             topk_probs = topk_probs.cpu()
     
             batch_cpu = {
-                "encoder_input": [row.tolist() for row in batch["student_encoder_input_ids"].cpu().numpy()],
-                "decoder_input": [row.tolist() for row in batch["student_decoder_input_ids"].cpu().numpy()],
-                "labels":        [row.tolist() for row in batch["student_labels"].cpu().numpy()],
-                "top_k_indices": [row.tolist() for row in topk_idx.numpy()],
-                "top_k_probs":   [row.tolist() for row in topk_probs.numpy()],
+                "encoder_input": batch["student_encoder_input_ids"].cpu().tolist(),
+                "decoder_input": batch["student_decoder_input_ids"].cpu().tolist(),
+                "labels":        batch["student_labels"].cpu().tolist(),
+                "top_k_indices": topk_idx.cpu().tolist(),
+                "top_k_probs":   topk_probs.cpu().tolist(),
             }
     
             arrow_batch = pa.table(batch_cpu)
     
             if writer is None:
-                writer = pq.ParquetWriter(f"{'train' if train else 'val'}/shard_{rank}.parquet", schema=arrow_batch.schema)
+                writer = pq.ParquetWriter(
+                    f"{'train' if train else 'val'}/shard_{rank}.parquet",
+                    schema=arrow_batch.schema,
+                    compression="SNAPPY",
+                    use_dictionary=True
+                )
             writer.write_table(arrow_batch)
     
         if writer is not None:
@@ -85,7 +89,7 @@ def run_process(rank, config):
         torch_dtype=torch.bfloat16,
         low_cpu_mem_usage=True,
         local_files_only=True
-    ).half().cpu()
+    ).cpu()
 
     model.resize_token_embeddings(len(config.tokenizer), mean_resizing=False)
 
