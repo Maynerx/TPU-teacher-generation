@@ -1,6 +1,7 @@
 import torch
 import torch.nn.functional as F
 import torch_xla.core.xla_model as xm
+import torch_xla
 from torch_xla.distributed.parallel_loader import ParallelLoader
 from torch.utils.data import DataLoader
 from transformers import AutoModelForCausalLM
