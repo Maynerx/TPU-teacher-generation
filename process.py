@@ -33,11 +33,11 @@ def run_process(rank, config):
             topk_probs = topk_probs.cpu()
     
             batch_cpu = {
-                "encoder_input": batch["student_encoder_input_ids"].cpu().numpy(),
-                "decoder_input": batch["student_decoder_input_ids"].cpu().numpy(),
-                "labels":        batch["student_labels"].cpu().numpy(),
-                "top_k_indices": topk_idx.cpu().numpy(),
-                "top_k_probs":   topk_probs.cpu().numpy(),
+                "encoder_input": [row.tolist() for row in batch["student_encoder_input_ids"].cpu().numpy()],
+                "decoder_input": [row.tolist() for row in batch["student_decoder_input_ids"].cpu().numpy()],
+                "labels":        [row.tolist() for row in batch["student_labels"].cpu().numpy()],
+                "top_k_indices": [row.tolist() for row in topk_idx.numpy()],
+                "top_k_probs":   [row.tolist() for row in topk_probs.numpy()],
             }
     
             arrow_batch = pa.table(batch_cpu)
