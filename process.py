@@ -43,7 +43,7 @@ def run_process(rank, config):
             arrow_batch = pa.table(batch_cpu)
     
             if writer is None:
-                writer = pq.ParquetWriter(f"{'train' if train else 'val'}/shard_{rank}.parquet", arrow_schema=arrow_batch.schema)
+                writer = pq.ParquetWriter(f"{'train' if train else 'val'}/shard_{rank}.parquet", schema=arrow_batch.schema)
             writer.write_table(arrow_batch)
     
         if writer is not None:
