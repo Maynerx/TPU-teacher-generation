@@ -32,7 +32,7 @@ def run_process(rank, config):
             dec_np = batch["student_decoder_input_ids"].cpu().numpy()
             lab_np = batch["student_labels"].cpu().numpy()
             idx_np = topk_idx.cpu().numpy().reshape(enc_np.shape[0], -1)     # (B, L*K)
-            prob_np = topk_probs.cpu().numpy().reshape(enc_np.shape[0], -1)  # (B, L*K)
+            prob_np = topk_probs.cpu().to(torch.float16).numpy().reshape(enc_np.shape[0], -1) # (B, L*K)
     
             # Use FixedSizeListArray (fast, avoids Python loops)
             batch_cpu = {
