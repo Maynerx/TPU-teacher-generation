@@ -62,8 +62,8 @@ def run_process(rank, config):
     trainiing_dataset = config.training_dataset
     validation_dataset = config.validation_dataset
 
-    trainiing_dataset = trainiing_dataset.shard(index=rank, num_shards=xm.xrt_world_size())
-    validation_dataset = validation_dataset.shard(index=rank, num_shards=xm.xrt_world_size())
+    trainiing_dataset = trainiing_dataset.shard(index=rank, num_shards=torch_xla.runtime.world_size())
+    validation_dataset = validation_dataset.shard(index=rank, num_shards=torch_xla.runtime.world_size())
 
     training_loader = DataLoader(
         trainiing_dataset,
