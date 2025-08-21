@@ -28,16 +28,19 @@ def run_process(rank, config):
                 topk_probs = F.softmax(topk_vals / temp, dim=-1)
             xm.mark_step()  # compile & run this sub-graph
     
-            topk_vals = topk_vals.cpu()
-            topk_idx  = topk_idx.cpu()
-            topk_probs = topk_probs.cpu()
+            enc_np = batch["student_encoder_input_ids"].cpu().numpy()
+            dec_np = batch["student_decoder_input_ids"].cpu().numpy()
+            lab_np = batch["student_labels"].cpu().numpy()
+            idx_np = topk_idx.cpu().numpy().reshape(enc_np.shape[0], -1)     # (B, L*K)
+            prob_np = topk_probs.cpu().numpy().reshape(enc_np.shape[0], -1)  # (B, L*K)
     
+            # Use FixedSizeListArray (fast, avoids Python loops)
             batch_cpu = {
-                "encoder_input": batch["student_encoder_input_ids"].cpu().tolist(),
-                "decoder_input": batch["student_decoder_input_ids"].cpu().tolist(),
-                "labels":        batch["student_labels"].cpu().tolist(),
-                "top_k_indices": topk_idx.cpu().tolist(),
-                "top_k_probs":   topk_probs.cpu().tolist(),
+                "encoder_input": pa.FixedSizeListArray.from_arrays(pa.array(enc_np.ravel()), enc_np.shape[1]),
+                "decoder_input": pa.FixedSizeListArray.from_arrays(pa.array(dec_np.ravel()), dec_np.shape[1]),
+                "labels":        pa.FixedSizeListArray.from_arrays(pa.array(lab_np.ravel()), lab_np.shape[1]),
+                "top_k_indices": pa.FixedSizeListArray.from_arrays(pa.array(idx_np.ravel()), idx_np.shape[1]),
+                "top_k_probs":   pa.FixedSizeListArray.from_arrays(pa.array(prob_np.ravel()), prob_np.shape[1]),
             }
     
             arrow_batch = pa.table(batch_cpu)
