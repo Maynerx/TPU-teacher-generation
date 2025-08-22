@@ -101,9 +101,16 @@ def run_process(rank, config):
         # Write remaining batches
         if batch_buffer:
             arrow_table = _buffer_to_arrow(batch_buffer)
-            filename = f"{'train' if train else 'val'}/shard_{rank}_final.arrow"
-            with ipc.new_file(filename, arrow_table.schema) as writer:
-                writer.write_table(arrow_table)
+            if saving_format == 'arrow':
+                filename = f"{'train' if train else 'val'}/shard_{rank}_{batch_idx}.arrow"
+                with ipc.new_file(filename, arrow_table.schema) as writer:
+                    writer.write_table(arrow_table)
+            elif saving_format == 'parquet':
+                filename = f"{'train' if train else 'val'}/shard_{rank}_{batch_idx}.parquet"
+                with pq.new_file(filename, arrow_table.schema) as writer:
+                    writer.write_table(arrow_table)
+            else:
+                raise ValueError(f"{saving_format} not supported. Valid choices include: parquet/arrow")
                     
     
     sleep(rank * 1.5)
