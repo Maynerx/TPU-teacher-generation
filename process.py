@@ -15,28 +15,35 @@ import pyarrow.feather as feather
 import threading
 from queue import Queue
 
+
+def tensor_to_fixed_array(t: torch.Tensor, dtype=None):
+    """Convert 2D tensor (B, L) to Arrow FixedSizeListArray"""
+    B, L = t.shape
+    arr = t.numpy().ravel()  # flatten to 1D
+    return pa.FixedSizeListArray.from_arrays(pa.array(arr, type=dtype), L)
+
 def _buffer_to_arrow(batch_buffer):
     """
     Convert list of (enc, dec, lab, idx, prob) to a single Arrow table using FixedSizeListArray.
     """
 
     # Concatenate along batch dimension
-    enc = torch.cat([b[0] for b in batch_buffer], dim=0).numpy().ravel()
-    dec = torch.cat([b[1] for b in batch_buffer], dim=0).numpy().ravel()
-    lab = torch.cat([b[2] for b in batch_buffer], dim=0).numpy().ravel()
-    idx = torch.cat([b[3] for b in batch_buffer], dim=0).numpy().ravel()
-    prob = torch.cat([b[4] for b in batch_buffer], dim=0).numpy().ravel()
+    enc = torch.cat([b[0] for b in batch_buffer], dim=0)
+    dec = torch.cat([b[1] for b in batch_buffer], dim=0)
+    lab = torch.cat([b[2] for b in batch_buffer], dim=0)
+    idx = torch.cat([b[3] for b in batch_buffer], dim=0)
+    prob = torch.cat([b[4] for b in batch_buffer], dim=0)
 
     # Create FixedSizeListArrays
-    batch_cpu = {
-        "encoder_input": pa.FixedSizeListArray.from_arrays(pa.array(enc), enc.shape[1]),
-        "decoder_input": pa.FixedSizeListArray.from_arrays(pa.array(dec), dec.shape[1]),
-        "labels":        pa.FixedSizeListArray.from_arrays(pa.array(lab), lab.shape[1]),
-        "top_k_indices": pa.FixedSizeListArray.from_arrays(pa.array(idx), idx.shape[1]),
-        "top_k_probs":   pa.FixedSizeListArray.from_arrays(pa.array(prob), prob.shape[1]),
-    }
+    arrow_batch = pa.table({
+        "encoder_input": tensor_to_fixed_array(enc),
+        "decoder_input": tensor_to_fixed_array(dec),
+        "labels":        tensor_to_fixed_array(lab),
+        "top_k_indices": tensor_to_fixed_array(idx),
+        "top_k_probs":   tensor_to_fixed_array(prob, dtype=pa.float16()),  # cast dtype
+    })
 
-    return pa.table(batch_cpu)
+    return pa.table(arrow_batch)
 
 
 def run_process(rank, config):
