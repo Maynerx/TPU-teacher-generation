@@ -159,7 +159,8 @@ def run_process(rank, config):
         verbose=True if rank == 0 else False,
         top_k=config.top_k,
         temp=config.temperature,
-        train=True
+        train=True,
+        saving_format=config.saving_format
     )
 
     # Validation loop
@@ -171,7 +172,8 @@ def run_process(rank, config):
         verbose=True if rank == 0 else False,
         top_k=config.top_k,
         temp=config.temperature,
-        train=False
+        train=False,
+        saving_format=config.saving_format
     )
     if rank == 0:
         print("Generation completed.")
