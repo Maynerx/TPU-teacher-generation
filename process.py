@@ -61,11 +61,11 @@ def run_process(rank, config):
             xm.mark_step()  # trigger XLA execution
     
             # Move tensors to CPU once
-            enc = batch["student_encoder_input_ids"].cpu()
-            dec = batch["student_decoder_input_ids"].cpu()
-            lab = batch["student_labels"].cpu()
-            idx = topk_idx.cpu()
-            prob = topk_probs.cpu().to(torch.float16)
+            enc  = batch["student_encoder_input_ids"].cpu().numpy()
+            dec  = batch["student_decoder_input_ids"].cpu().numpy()
+            lab  = batch["student_labels"].cpu().numpy()
+            idx  = topk_idx.cpu().numpy()
+            prob = topk_probs.cpu().to(torch.float16).numpy()
     
             batch_buffer.append((enc, dec, lab, idx, prob))
     
