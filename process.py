@@ -55,7 +55,7 @@ def _buffer_to_arrow(batch_buffer):
 
 
 def run_process(rank, config):
-    def inference_loop(model, data_loader, device, rank, verbose=False, top_k=50, temp=2.0, train=True, write_every_n_batches=256):
+    def inference_loop(model, data_loader, device, rank, verbose=False, top_k=50, temp=2.0, train=True, write_every_n_batches=512):
         """
         TPU-friendly inference loop writing to Arrow IPC files (faster than Parquet).
         """
