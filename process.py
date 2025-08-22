@@ -17,10 +17,18 @@ from queue import Queue
 
 
 def tensor_to_fixed_array(t: torch.Tensor, dtype=None):
-    """Convert 2D tensor (B, L) to Arrow FixedSizeListArray"""
-    B, L = t.shape
-    arr = t.numpy().ravel()  # flatten to 1D
-    return pa.FixedSizeListArray.from_arrays(pa.array(arr, type=dtype), L)
+    if isinstance(t, torch.Tensor):
+        t = t.detach().cpu().contiguous().numpy()
+
+    if t.ndim == 3:
+        B, L, K = t.shape
+        inner = pa.FixedSizeListArray.from_arrays(pa.array(t.reshape(-1), type=dtype), K)
+        return pa.FixedSizeListArray.from_arrays(inner, L)
+    elif t.ndim == 2:
+        B, L = t.shape
+        return pa.FixedSizeListArray.from_arrays(pa.array(t.ravel(), type=dtype), L)
+    else:
+        raise ValueError(f"Expected 2D or 3D tensor, got shape {t.shape}")
 
 def _buffer_to_arrow(batch_buffer):
     """
