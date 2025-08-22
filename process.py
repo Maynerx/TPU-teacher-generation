@@ -9,32 +9,50 @@ import tqdm.auto as tqdm
 import pyarrow as pa
 import pyarrow.parquet as pq
 from time import sleep
-
+import pyarrow.feather as feather
+import threading
+from queue import Queue
 
 
 def run_process(rank, config):
     def inference_loop(model, data_loader, device, rank, verbose=False, top_k=50, temp=2.0, train=True):
         model.eval()
         data_loader = tqdm.tqdm(data_loader) if rank == 0 else data_loader
-        writer = None
     
-        for batch in data_loader:
-            input_ids_t = batch["teacher_input_ids"].to(device)           # (B, 2L)
-            input_ids_t = input_ids_t.long() 
+        # Optional: async writing queue
+        write_queue = Queue(maxsize=8)
+        
+        def writer_thread():
+            while True:
+                item = write_queue.get()
+                if item is None:
+                    break
+                filename, arrow_batch = item
+                feather.write_feather(arrow_batch, filename)
+                write_queue.task_done()
+        
+        thread = threading.Thread(target=writer_thread, daemon=True)
+        thread.start()
+    
+        for batch_idx, batch in enumerate(data_loader):
+            input_ids_t = batch["teacher_input_ids"].to(device).long()
             attn_mask_t = batch["teacher_attention_mask"].to(device)
+    
             with torch.no_grad():
-                logits = model(input_ids=input_ids_t, attention_mask=attn_mask_t).logits        # (B, L, V)
+                logits = model(input_ids=input_ids_t, attention_mask=attn_mask_t).logits
                 topk_vals, topk_idx = torch.topk(logits, top_k, dim=-1)
                 topk_probs = F.softmax(topk_vals / temp, dim=-1)
-            xm.mark_step()  # compile & run this sub-graph
     
+            xm.mark_step()  # run sub-graph
+    
+            # Move to CPU and cast
             enc_np = batch["student_encoder_input_ids"].cpu().numpy()
             dec_np = batch["student_decoder_input_ids"].cpu().numpy()
             lab_np = batch["student_labels"].cpu().numpy()
-            idx_np = topk_idx.cpu().numpy().reshape(enc_np.shape[0], -1)     # (B, L*K)
-            prob_np = topk_probs.cpu().to(torch.float16).numpy().reshape(enc_np.shape[0], -1) # (B, L*K)
+            idx_np = topk_idx.cpu().numpy().reshape(enc_np.shape[0], -1)
+            prob_np = topk_probs.cpu().to(torch.float16).numpy().reshape(enc_np.shape[0], -1)
     
-            # Use FixedSizeListArray (fast, avoids Python loops)
+            # Use FixedSizeListArray for efficient storage
             batch_cpu = {
                 "encoder_input": pa.FixedSizeListArray.from_arrays(pa.array(enc_np.ravel()), enc_np.shape[1]),
                 "decoder_input": pa.FixedSizeListArray.from_arrays(pa.array(dec_np.ravel()), dec_np.shape[1]),
@@ -45,18 +63,14 @@ def run_process(rank, config):
     
             arrow_batch = pa.table(batch_cpu)
     
-            if writer is None:
-                writer = pq.ParquetWriter(
-                    f"{'train' if train else 'val'}/shard_{rank}.parquet",
-                    schema=arrow_batch.schema,
-                    compression="SNAPPY",
-                    use_dictionary=True
-                )
-            writer.write_table(arrow_batch)
+            # Async write
+            filename = f"{'train' if train else 'val'}/shard_{rank}_batch{batch_idx}.feather"
+            write_queue.put((filename, arrow_batch))
     
-        if writer is not None:
-            writer.close()
-            
+        # Signal writer thread to finish
+        write_queue.put(None)
+        thread.join()
+                
     
     sleep(rank * 1.5)
     if rank == 0:
