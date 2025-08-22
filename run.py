@@ -15,7 +15,8 @@ class Config:
                 batch_size: int,
                 top_k: int,
                 temperature: float,
-                num_workers: int
+                num_workers: int,
+                saving_format: str
                 ):
         self.model_name = model_name
         self.seq_len = seq_len
@@ -26,6 +27,7 @@ class Config:
         self.validation_dataset = None
         self.num_workers = num_workers
         self.tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
+        self.saving_format = saving_format
 
 def empty_load(model_name):
     _ = AutoModelForCausalLM.from_pretrained(
@@ -45,7 +47,8 @@ def load_config(config_path):
         batch_size=config_data['batch_size'],
         top_k=config_data['top_k'],
         temperature=config_data['temperature'],
-        num_workers=config_data['num_workers']
+        num_workers=config_data['num_workers'],
+        saving_format=config_data['saving_format']
     )
 
 
