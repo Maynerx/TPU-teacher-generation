@@ -55,7 +55,7 @@ def _buffer_to_arrow(batch_buffer):
 
 
 def run_process(rank, config):
-    def inference_loop(model, data_loader, device, rank, verbose=False, top_k=50, temp=2.0, train=True, write_every_n_batches=512):
+    def inference_loop(model, data_loader, device, rank, verbose=False, top_k=50, temp=2.0, train=True, write_every_n_batches=512, saving_format='parquet'):
         """
         TPU-friendly inference loop writing to Arrow IPC files (faster than Parquet).
         """
@@ -86,9 +86,16 @@ def run_process(rank, config):
             # Write every N batches
             if len(batch_buffer) >= write_every_n_batches:
                 arrow_table = _buffer_to_arrow(batch_buffer)
-                filename = f"{'train' if train else 'val'}/shard_{rank}_{batch_idx}.arrow"
-                with ipc.new_file(filename, arrow_table.schema) as writer:
-                    writer.write_table(arrow_table)
+                if saving_format == 'arrow':
+                    filename = f"{'train' if train else 'val'}/shard_{rank}_{batch_idx}.arrow"
+                    with ipc.new_file(filename, arrow_table.schema) as writer:
+                        writer.write_table(arrow_table)
+                elif saving_format == 'parquet':
+                    filename = f"{'train' if train else 'val'}/shard_{rank}_{batch_idx}.parquet"
+                    with pq.new_file(filename, arrow_table.schema) as writer:
+                        writer.write_table(arrow_table)
+                else:
+                    raise ValueError(f"{saving_format} not supported. Valid choices include: parquet/arrow")
                 batch_buffer.clear()
     
         # Write remaining batches
