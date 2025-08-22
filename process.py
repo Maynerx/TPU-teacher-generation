@@ -21,19 +21,19 @@ def _buffer_to_arrow(batch_buffer):
     """
 
     # Concatenate along batch dimension
-    enc = torch.cat([b[0] for b in batch_buffer], dim=0).numpy()
-    dec = torch.cat([b[1] for b in batch_buffer], dim=0).numpy()
-    lab = torch.cat([b[2] for b in batch_buffer], dim=0).numpy()
-    idx = torch.cat([b[3] for b in batch_buffer], dim=0).numpy()
-    prob = torch.cat([b[4] for b in batch_buffer], dim=0).numpy()
+    enc = torch.cat([b[0] for b in batch_buffer], dim=0).numpy().ravel()
+    dec = torch.cat([b[1] for b in batch_buffer], dim=0).numpy().ravel()
+    lab = torch.cat([b[2] for b in batch_buffer], dim=0).numpy().ravel()
+    idx = torch.cat([b[3] for b in batch_buffer], dim=0).numpy().ravel()
+    prob = torch.cat([b[4] for b in batch_buffer], dim=0).numpy().ravel()
 
     # Create FixedSizeListArrays
     batch_cpu = {
-        "encoder_input": pa.FixedSizeListArray.from_arrays(pa.array(enc.view(-1)), enc.shape[1]),
-        "decoder_input": pa.FixedSizeListArray.from_arrays(pa.array(dec.view(-1)), dec.shape[1]),
-        "labels":        pa.FixedSizeListArray.from_arrays(pa.array(lab.view(-1)), lab.shape[1]),
-        "top_k_indices": pa.FixedSizeListArray.from_arrays(pa.array(idx.view(-1)), idx.shape[1]),
-        "top_k_probs":   pa.FixedSizeListArray.from_arrays(pa.array(prob.view(-1)), prob.shape[1]),
+        "encoder_input": pa.FixedSizeListArray.from_arrays(pa.array(enc), enc.shape[1]),
+        "decoder_input": pa.FixedSizeListArray.from_arrays(pa.array(dec), dec.shape[1]),
+        "labels":        pa.FixedSizeListArray.from_arrays(pa.array(lab), lab.shape[1]),
+        "top_k_indices": pa.FixedSizeListArray.from_arrays(pa.array(idx), idx.shape[1]),
+        "top_k_probs":   pa.FixedSizeListArray.from_arrays(pa.array(prob), prob.shape[1]),
     }
 
     return pa.table(batch_cpu)
