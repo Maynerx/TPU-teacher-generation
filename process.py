@@ -92,8 +92,7 @@ def run_process(rank, config):
                         writer.write_table(arrow_table)
                 elif saving_format == 'parquet':
                     filename = f"{'train' if train else 'val'}/shard_{rank}_{batch_idx}.parquet"
-                    with pq.new_file(filename, arrow_table.schema) as writer:
-                        writer.write_table(arrow_table)
+                    pq.write_table(arrow_table, filename)
                 else:
                     raise ValueError(f"{saving_format} not supported. Valid choices include: parquet/arrow")
                 batch_buffer.clear()
@@ -107,8 +106,7 @@ def run_process(rank, config):
                     writer.write_table(arrow_table)
             elif saving_format == 'parquet':
                 filename = f"{'train' if train else 'val'}/shard_{rank}_{batch_idx}.parquet"
-                with pq.new_file(filename, arrow_table.schema) as writer:
-                    writer.write_table(arrow_table)
+                pq.write_table(arrow_table, filename)
             else:
                 raise ValueError(f"{saving_format} not supported. Valid choices include: parquet/arrow")
                     
