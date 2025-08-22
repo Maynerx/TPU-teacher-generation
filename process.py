@@ -19,14 +19,13 @@ def _buffer_to_arrow(batch_buffer):
     """
     Convert list of (enc, dec, lab, idx, prob) to a single Arrow table using FixedSizeListArray.
     """
-    import pyarrow as pa
 
     # Concatenate along batch dimension
-    enc = torch.cat([b[0] for b in batch_buffer], dim=0)
-    dec = torch.cat([b[1] for b in batch_buffer], dim=0)
-    lab = torch.cat([b[2] for b in batch_buffer], dim=0)
-    idx = torch.cat([b[3] for b in batch_buffer], dim=0)
-    prob = torch.cat([b[4] for b in batch_buffer], dim=0)
+    enc = torch.cat([b[0] for b in batch_buffer], dim=0).numpy()
+    dec = torch.cat([b[1] for b in batch_buffer], dim=0).numpy()
+    lab = torch.cat([b[2] for b in batch_buffer], dim=0).numpy()
+    idx = torch.cat([b[3] for b in batch_buffer], dim=0).numpy()
+    prob = torch.cat([b[4] for b in batch_buffer], dim=0).numpy()
 
     # Create FixedSizeListArrays
     batch_cpu = {
@@ -61,11 +60,11 @@ def run_process(rank, config):
             xm.mark_step()  # trigger XLA execution
     
             # Move tensors to CPU once
-            enc  = batch["student_encoder_input_ids"].cpu().numpy()
-            dec  = batch["student_decoder_input_ids"].cpu().numpy()
-            lab  = batch["student_labels"].cpu().numpy()
-            idx  = topk_idx.cpu().numpy()
-            prob = topk_probs.cpu().to(torch.float16).numpy()
+            enc  = batch["student_encoder_input_ids"].cpu()
+            dec  = batch["student_decoder_input_ids"].cpu()
+            lab  = batch["student_labels"].cpu()
+            idx  = topk_idx.cpu()
+            prob = topk_probs.cpu().to(torch.float16)
     
             batch_buffer.append((enc, dec, lab, idx, prob))
     
